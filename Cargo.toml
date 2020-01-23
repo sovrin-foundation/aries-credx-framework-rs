@@ -1,0 +1,14 @@
+[package]
+authors = ["The Hyperledger Aries Contributors"]
+edition = "2018"
+exclude = [".gitignore"]
+keywords = ["agents", "aries", "blockchain", "hyperledger"]
+license = "Apache-2.0"
+name = "aries-credx-framework-rs"
+readme = "README.md"
+version = "0.1.0"
+
+[features]
+default = []
+
+[dependencies]
