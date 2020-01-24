@@ -12,3 +12,7 @@ version = "0.1.0"
 default = []
 
 [dependencies]
+amcl_wrapper = {version = "0.3", features = ["bls381"] }
+bigdecimal = "0.1"
+chrono = { version = "0.4", features = ["serde"] }
+num-bigint = "0.2"
