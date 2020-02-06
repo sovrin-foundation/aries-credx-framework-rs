@@ -15,8 +15,17 @@ impl AttributeEncoder for FieldElement {
     }
 
     fn from_vec(bytes: Vec<u8>) -> Self::Output {
-        let mut data = vec![0u8; amcl_wrapper::constants::FieldElement_SIZE - bytes.len()];
-        data.extend_from_slice(&bytes); 
+        let mut data;
+        if bytes.len() < amcl_wrapper::constants::FieldElement_SIZE {
+            data = vec![0u8; amcl_wrapper::constants::FieldElement_SIZE - bytes.len()];
+            data.extend_from_slice(&bytes); 
+        } else  if bytes.len() > amcl_wrapper::constants::FieldElement_SIZE {
+            data = vec![0u8; amcl_wrapper::constants::FieldElement_SIZE];
+            data.copy_from_slice(&bytes[..amcl_wrapper::constants::FieldElement_SIZE]);
+        } else {
+            data = vec![0u8; amcl_wrapper::constants::FieldElement_SIZE];
+            data.copy_from_slice(bytes.as_slice());
+        }
         FieldElement::from_bytes(data.as_slice()).map_err(|e| format!("{:?}", e)).unwrap()
     }
 }

@@ -17,5 +17,6 @@ rsa-native = ["openssl"]
 amcl_wrapper = {version = "0.3", features = ["bls381"], optional = true }
 bigdecimal = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
+digest = "0.8"
 num-bigint = "0.2"
 openssl = { version = "0.10", optional = true }

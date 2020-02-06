@@ -1,5 +1,5 @@
 use chrono::DateTime;
-
+use digest::{Digest, generic_array::typenum::U32};
 use std::ops::{Add, Sub};
 
 /// How many bits are used to shift 1 to get to zero centering
@@ -33,6 +33,17 @@ pub trait AttributeEncoder {
         let dt = DateTime::parse_from_rfc3339(value.into()).map_err(|e| format!("{:?}", e))?;
         let base = DateTime::parse_from_rfc3339("1900-01-01T00:00:00.000+00:00").map_err(|e| format!("{:?}", e))?;
         Ok(Self::zero_center() + Self::Output::from((dt - base).num_days() as u64))
+    }
+
+    /// Takes a UTF-8 encoded string and uses the Blake2 hash to convert
+    /// to a cryptographic integer.
+    /// `value`: Any type that can be converted into a string slice.
+    /// The hash can be anything that emits a 32 byte output.
+    /// 
+    /// An example call is encode_from_utf8_as_hash::<sha2::Sha256>("first_name")
+    fn encode_from_utf8_as_hash<'a, A: Into<&'a str>, D: Digest<OutputSize = U32> + Default>(value: A) -> Result<Self::Output, String> {
+        let hash = D::digest(value.into().as_bytes());
+        Ok(Self::from_vec(hash[..].to_vec()))
     }
 
     /// Takes a 64-bit floating point number and converts it into
