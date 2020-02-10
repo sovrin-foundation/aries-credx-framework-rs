@@ -11,6 +11,13 @@ use std::{cmp::{Eq, PartialEq}, ops::{Add, Sub}};
 #[derive(Debug)]
 pub struct BigNumber(pub BigNum);
 
+impl BigNumber {
+    /// Convert a hex string to a BigNumber
+    pub fn from_hex(n: &str) -> Result<BigNumber, String> {
+        Ok(BigNumber(BigNum::from_hex_str(n).map_err(|_| format!("Unable to convert {} to a BigNumber", n))?))
+    }
+}
+
 impl Add for BigNumber {
     type Output = Self;
 
@@ -57,6 +64,10 @@ impl From<u64> for BigNumber {
     }
 }
 
+impl From<i64> for BigNumber {
+    fn from(v: i64) -> Self { BigNumber(BigNum::from_slice(&v.to_be_bytes()[..]).unwrap()) }
+}
+
 impl PartialEq for BigNumber {
     fn eq(&self, other: &BigNumber) -> bool {
         self.0 == other.0
@@ -74,7 +85,7 @@ impl AttributeEncoder for BigNumber {
     }
 
     fn zero_center() -> Self::Output {
-        let mut bn = BigNum::from_u32(1).unwrap();
+        let mut bn = BigNum::new().unwrap();
         bn.set_bit(BITS_IN_ZERO as i32).unwrap();
         Self(bn)
     }
@@ -87,16 +98,17 @@ impl AttributeEncoder for BigNumber {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
 
     #[test]
     fn rfc3339_string_convert() {
         let res = BigNumber::encode_from_rfc3339_as_unixtimestamp("2018-01-26T18:30:09.453+00:00");
         assert!(res.is_ok());
-        assert_eq!(BigNumber::from(1_516_991_409) + BigNumber::zero_center(), res.unwrap());
+        assert_eq!(BigNumber::from(1_516_991_409u64) + BigNumber::zero_center(), res.unwrap());
 
         let res = BigNumber::encode_from_rfc3339_as_unixtimestamp("2020-01-26T00:30:09.000+18:00");
         assert!(res.is_ok());
-        assert_eq!(BigNumber::from(1_579_933_809) + BigNumber::zero_center(), res.unwrap());
+        assert_eq!(BigNumber::from(1_579_933_809u64) + BigNumber::zero_center(), res.unwrap());
 
         let res = BigNumber::encode_from_rfc3339_as_unixtimestamp("1970-01-01T00:00:00.000+00:00");
         assert!(res.is_ok());
@@ -127,7 +139,7 @@ mod tests {
         assert!(res1.is_ok());
         assert_eq!(BigNum::from_u32(8).unwrap(), res1.unwrap().0);
 
-        let pos_inf = BigNumber::max() - BigNumber::from(9);
+        let pos_inf = BigNumber::max() - BigNumber::from(9u64);
         let res1 = BigNumber::encode_from_f64(std::f64::INFINITY);
         assert!(res1.is_ok());
         assert_eq!(pos_inf, res1.unwrap());
@@ -139,20 +151,24 @@ mod tests {
 
     #[test]
     fn size_test() {
-        let res = BigNumber::encode_from_isize(0isize);
+        let mut test_vectors = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_vectors.push("test_vectors");
+        test_vectors.push("integers.txt");
+        let lines = std::fs::read_to_string(test_vectors).unwrap().split("\n").map(|s| s.to_string()).collect::<Vec<String>>();
+        assert_eq!(lines.len(), 6);
+        for i in 0..lines.len() - 1 {
+            let parts = lines[i].split(",").collect::<Vec<&str>>();
+            let value = parts[0].parse::<isize>().unwrap();
+            let expected = BigNumber::from_hex(parts[1]).unwrap();
+            let res = BigNumber::encode_from_isize(value);
+            assert!(res.is_ok());
+            assert_eq!(expected, res.unwrap());
+        }
+        let parts = lines[lines.len() - 1].split(",").collect::<Vec<&str>>();
+        let value = parts[0].parse::<usize>().unwrap();
+        let expected = BigNumber::from_hex(parts[1]).unwrap();
+        let res = BigNumber::encode_from_usize(value);
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), BigNumber::zero_center());
-        let res = BigNumber::encode_from_isize(1isize);
-        assert!(res.is_ok());
-        assert_eq!(res.unwrap(), BigNumber::zero_center() + BigNumber::from(1));
-        let res = BigNumber::encode_from_isize(-1isize);
-        assert!(res.is_ok());
-        assert_eq!(res.unwrap(), BigNumber::zero_center() - BigNumber::from(1));
-        let res = BigNumber::encode_from_isize(std::isize::MAX);
-        assert!(res.is_ok());
-        assert_eq!(res.unwrap(), BigNumber::zero_center() + BigNumber::from(std::isize::MAX as u64));
-        let res = BigNumber::encode_from_usize(std::usize::MAX);
-        assert!(res.is_ok());
-        assert_eq!(res.unwrap(), BigNumber::zero_center() + BigNumber::from(std::u64::MAX));
+        assert_eq!(expected, res.unwrap());
     }
 }

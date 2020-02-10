@@ -11,3 +11,6 @@
 /// Encodings that are used by mappings to transform input attribute data
 /// of a specific format into a integer suitable for cryptographic signing.
 pub mod encoding;
+
+#[cfg(feature = "ffi")]
+pub mod ffi;

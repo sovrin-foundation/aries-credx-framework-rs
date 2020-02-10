@@ -75,11 +75,10 @@ pub trait AttributeEncoder {
                     }
                     let (bi, _) = b.into_bigint_and_exponent();
                     let (sign, bytes) = bi.to_bytes_be();
-                    let f = Self::from_vec(bytes);
                     match sign {
                         NoSign => Self::zero_center(),
-                        Plus => f,
-                        Minus => Self::zero_center() - f
+                        Plus => Self::from_vec(bytes),
+                        Minus => Self::zero_center() - Self::from_vec(bytes)
                     }
                 }
             }
@@ -92,7 +91,11 @@ pub trait AttributeEncoder {
     fn encode_from_isize<A: Into<isize>>(value: A) -> Result<Self::Output, String> {
         let value = value.into();
         if value < 0 {
-            Ok(Self::zero_center() - Self::Output::from(-value as u64))
+            if value == std::isize::MIN {
+                Ok(Self::zero_center() - Self::from_vec(value.to_be_bytes().to_vec()))
+            } else {
+                Ok(Self::zero_center() - Self::Output::from((-value) as u64))
+            }
         } else {
             Ok(Self::zero_center() + Self::Output::from(value as u64))
         }
@@ -102,7 +105,8 @@ pub trait AttributeEncoder {
     /// a cryptographic integer
     /// `value`: Any type that can be converted into a usize
     fn encode_from_usize<A: Into<usize>>(value: A) -> Result<Self::Output, String> {
-        Ok(Self::zero_center() + Self::Output::from(value.into() as u64))
+        let value = value.into() as u64;
+        Ok(Self::zero_center() + Self::from_vec(value.to_be_bytes().to_vec()))
     }
 }
 

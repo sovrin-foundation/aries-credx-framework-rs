@@ -33,6 +33,7 @@ impl AttributeEncoder for FieldElement {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
 
     #[test]
     fn rfc3339_string_convert() {
@@ -90,20 +91,24 @@ mod tests {
 
     #[test]
     fn size_test() {
-        let res = FieldElement::encode_from_isize(0isize);
+        let mut test_vectors = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_vectors.push("test_vectors");
+        test_vectors.push("integers.txt");
+        let lines = std::fs::read_to_string(test_vectors).unwrap().split("\n").map(|s| s.to_string()).collect::<Vec<String>>();
+        assert_eq!(lines.len(), 6);
+        for i in 0..lines.len() - 1 {
+            let parts = lines[i].split(",").collect::<Vec<&str>>();
+            let value = parts[0].parse::<isize>().unwrap();
+            let expected = FieldElement::from_hex(parts[1].to_string()).unwrap();
+            let res = FieldElement::encode_from_isize(value);
+            assert!(res.is_ok());
+            assert_eq!(expected, res.unwrap());
+        }
+        let parts = lines[lines.len() - 1].split(",").collect::<Vec<&str>>();
+        let value = parts[0].parse::<usize>().unwrap();
+        let expected = FieldElement::from_hex(parts[1].to_string()).unwrap();
+        let res = FieldElement::encode_from_usize(value);
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), FieldElement::zero_center());
-        let res = FieldElement::encode_from_isize(1isize);
-        assert!(res.is_ok());
-        assert_eq!(res.unwrap(), FieldElement::zero_center() + FieldElement::one());
-        let res = FieldElement::encode_from_isize(-1isize);
-        assert!(res.is_ok());
-        assert_eq!(res.unwrap(), FieldElement::zero_center() - FieldElement::one());
-        let res = FieldElement::encode_from_isize(std::isize::MAX);
-        assert!(res.is_ok());
-        assert_eq!(res.unwrap(), FieldElement::zero_center() + FieldElement::from(std::isize::MAX as u64));
-        let res = FieldElement::encode_from_usize(std::usize::MAX);
-        assert!(res.is_ok());
-        assert_eq!(res.unwrap(), FieldElement::zero_center() + FieldElement::from(std::usize::MAX as u64));
+        assert_eq!(expected, res.unwrap());
     }
 }
